@@ -44,11 +44,13 @@
 IF OBJECT_ID ('gold.dim_product', 'U') IS NOT NULL
 	DROP TABLE gold.dim_product
 CREATE TABLE gold.dim_product (
-	product_key INT IDENTITY(1,1) PRIMARY KEY ,
+	product_key INT IDENTITY(1,1),
 	product_id NVARCHAR(50),
 	category NVARCHAR(50),
 	subcategory NVARCHAR(50),
 	product_name NVARCHAR(200)
+	CONSTRAINT PK_dim_product
+	PRIMARY KEY (product_key)
 );
 -- ------------------------------------------------------------------------------
 -- Tabel: gold.dim_shipment
@@ -67,9 +69,11 @@ CREATE TABLE gold.dim_product (
 IF OBJECT_ID ('gold.dim_shipment', 'U') IS NOT NULL
 	DROP TABLE gold.dim_shipment;
 CREATE TABLE gold.dim_shipment (
-	shipment_key INT IDENTITY(1,1) PRIMARY KEY,
+	shipment_key INT IDENTITY(1,1),
 	order_id NVARCHAR(50),
 	ship_mode NVARCHAR(50)
+	CONSTRAINT PK_dim_shipment
+	PRIMARY KEY (shipment_key)
 );
 
 -- ------------------------------------------------------------------------------
@@ -90,7 +94,7 @@ CREATE TABLE gold.dim_shipment (
 IF OBJECT_ID ('gold.dim_customer', 'U') IS NOT NULL
 	DROP TABLE gold.dim_customer;
 CREATE TABLE gold.dim_customer (
-	customer_key INT IDENTITY (1,1) PRIMARY KEY,
+	customer_key INT IDENTITY (1,1),
 	customer_id NVARCHAR(50),
 	postal_code NVARCHAR(50),
 	customer_name NVARCHAR(50),
@@ -99,6 +103,8 @@ CREATE TABLE gold.dim_customer (
 	city NVARCHAR(50),
 	state NVARCHAR(50),
 	region NVARCHAR(50)
+	CONSTRAINT PK_dim_customer
+	PRIMARY KEY (customer_key)
 );
 
 -- ------------------------------------------------------------------------------
@@ -123,14 +129,34 @@ CREATE TABLE gold.dim_customer (
 IF OBJECT_ID ('gold.fact_orders', 'U') IS NOT NULL
 	DROP TABLE gold.fact_orders;
 CREATE TABLE gold.fact_orders (
-	order_id NVARCHAR(50),
-	customer_key INT FOREIGN KEY REFERENCES gold.dim_customer(customer_key),
-	product_key INT FOREIGN KEY REFERENCES gold.dim_product(product_key),
-	shipment_key INT FOREIGN KEY REFERENCES gold.dim_shipment(shipment_key),
+	order_line_number INT IDENTITY (1,1),
+	order_id NVARCHAR(50) NOT NULL,
+	customer_key INT NOT NULL,
+	product_key INT NOT NULL,
+	shipment_key INT NOT NULL,
 	order_date DATE,
 	ship_date DATE,
 	quantity INT,
 	sales FLOAT,
 	discount FLOAT,
 	profit FLOAT
+	CONSTRAINT PK_fact_orders 
+	PRIMARY KEY (order_line_number)
 );
+
+-- Membuat Foreign Key 
+-- Foreign Key	
+	ALTER TABLE gold.fact_orders
+	ADD CONSTRAINT FK_fact_orders_customer
+	FOREIGN KEY (customer_key)
+	REFERENCES gold.dim_customer(customer_key);
+
+	ALTER TABLE gold.fact_orders
+	ADD CONSTRAINT FK_fact_orders_product
+	FOREIGN KEY (product_key)
+	REFERENCES gold.dim_product(product_key);
+
+	ALTER TABLE gold.fact_orders
+	ADD CONSTRAINT FK_fact_orders_shipment
+	FOREIGN KEY (shipment_key)
+	REFERENCES gold.dim_shipment(shipment_key);
