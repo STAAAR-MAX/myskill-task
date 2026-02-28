@@ -112,11 +112,13 @@ SELECT
 	c.registration_channel,
 	c.registration_date,
 	CAST(o.order_date AS DATE) date_order,
+	is_nett,
 	ROW_NUMBER() OVER(PARTITION BY o.customer_id ORDER BY CAST(o.order_date AS DATE)) rn
 FROM order_detail o
 LEFT JOIN customer_detail c
 ON o.customer_id = c.customer_id
 WHERE c.registration_date > '2024-01-01' AND c.registration_date < '2025-01-01'
+	AND is_nett =1
 )
 , CTE_first_order AS (
 SELECT
