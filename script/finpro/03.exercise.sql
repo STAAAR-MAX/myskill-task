@@ -1,72 +1,80 @@
--- total sales per bulan untuk tahun 2024, berdasarkan tabel transaction_detail (kolom total_paid). 
+--======================================================================================================================
+															-- EXERCISE --
+-- ========================================================================================================================
+-- total sales dan total tansaksi per bulan untuk tahun 2024, berdasarkan tabel transaction_detail (kolom total_paid). 
 SELECT
-	DATETRUNC(month,transaction_date) AS month_periode,
+	FORMAT(transaction_date, 'yyyy-MM') AS month_periode,
+	COUNT(DISTINCT transaction_id) AS nr_transaction,
 	SUM(total_paid) AS total_sales
 FROM transaction_detail
 WHERE transaction_date >= '2024-01-01'
 	AND transaction_date < '2025-01-01'
-GROUP BY DATETRUNC(month,transaction_date)
-ORDER BY total_sales DESC
-
+GROUP BY FORMAT(transaction_date, 'yyyy-MM')
+ORDER BY month_periode ASC;
 ---------------------------------------------------------------------------------------------------------------------
 
 -- tampilkan volume (quantity) terjual per kategori setiap tahun dari 2020 s.d. 2024.
-WITH CTE_base AS (
 SELECT
 	p.category,
-	o.quantity,
-	DATETRUNC(year,o.order_date) AS year_periode
+	SUM(CASE WHEN YEAR(order_date) = 2020 THEN o.quantity ELSE 0 END) '2020',
+	SUM(CASE WHEN YEAR(order_date) = 2021 THEN o.quantity ELSE 0 END) '2021',
+	SUM(CASE WHEN YEAR(order_date) = 2022 THEN o.quantity ELSE 0 END) '2022',
+	SUM(CASE WHEN YEAR(order_date) = 2023 THEN o.quantity ELSE 0 END) '2023',
+	SUM(CASE WHEN YEAR(order_date) = 2024 THEN o.quantity ELSE 0 END) '2024'
 FROM order_detail o
 LEFT JOIN product_detail p
 ON o.sku_id = p.sku_id
-WHERE is_nett = 1
-)
-SELECT
-	category,
-	Year_periode,
-	SUM(quantity) volume_quantity
-FROM CTE_base
-GROUP BY Year_periode,category
-ORDER BY year_periode ASC,
-		volume_quantity DESC
-
+WHERE is_valid = 1 
+	AND order_date >= '2020-01-01' 
+	AND order_date< '2025-01-01'
+GROUP BY p.category
+ORDER BY p.category
 ---------------------------------------------------------------------------------------------------------------------
 
 /* analisis performa channel (web, app, offline) di 2024:
 1. Total orders (distinct) dan revenue (after_discount) per bulan.
 2. Hitung Yoy by month growth revenue per bulan 2024 vs 2023 dalam bulan yang sama 
 */
-WITH CTE_base_query AS (
+WITH CTE_summary AS (
 SELECT
 	channel_type,
-	DATETRUNC(month,order_date) AS month_date,
-	COUNT(DISTINCT order_id) AS total_order,
-	SUM(after_discount) AS total_revenue
-	FROM order_detail
-WHERE order_date >= '2023-01-01'
+	DATEPART(year, order_date) year,
+	DATEPART(month, order_date) month,
+	COUNT(DISTINCT order_id) total_orders,
+	SUM(after_discount) cy_total_revenue
+FROM order_detail
+WHERE order_date >= '2023-01-01' 
 	AND order_date < '2025-01-01'
-GROUP BY channel_type, DATETRUNC(month,order_date)
-)
-, CTE_MoM AS (
+GROUP BY channel_type,
+	DATEPART(year, order_date),
+	DATEPART(month, order_date)
+),
+CTE_py AS (
 SELECT
 	channel_type,
-	total_order,
-	FORMAT(month_date,'yyyy-MM') AS year_month,
-	total_revenue,
-	LAG(total_revenue) OVER (PARTITION BY channel_type, MONTH(month_date) ORDER BY YEAR(month_date)) AS prev_yearmonth
-FROM CTE_base_query
+	year,
+	month,
+	total_orders,
+	cy_total_revenue,
+	LAG(cy_total_revenue) OVER (PARTITION BY channel_type,month ORDER BY year) py_total_sales
+FROM CTE_summary
 )
 SELECT
 	channel_type,
-	total_order,
-	year_month,
-	total_revenue,
-	prev_yearmonth,
-	ROUND((CAST(total_revenue AS FLOAT) - prev_yearmonth) / prev_yearmonth,2) * 100 AS [growth %]
-FROM CTE_MoM
-WHERE prev_yearmonth IS NOT NULL
-ORDER BY [growth %] DESC
-
+	year,
+	month,
+	total_orders,
+	cy_total_revenue,
+	py_total_sales,
+	(cy_total_revenue - py_total_sales) AS MoM,
+	ROUND((CAST((cy_total_revenue - py_total_sales)AS FLOAT)/py_total_sales)*100,2) AS pct_growth,
+	CASE
+		WHEN (cy_total_revenue - py_total_sales) > 0 THEN 'Increase'
+		WHEN (cy_total_revenue - py_total_sales) < 0 THEN 'Decrease'
+		ELSE 'No Change'
+	END category
+FROM CTE_py
+WHERE year = 2024
 ---------------------------------------------------------------------------------------------------------------------
 
 /* Mohon dibuatkan laporan kinerja funnel untuk event “Organic” di funnel_detail periode 1 Jan–
@@ -112,13 +120,13 @@ SELECT
 	c.registration_channel,
 	c.registration_date,
 	CAST(o.order_date AS DATE) date_order,
-	is_nett,
 	ROW_NUMBER() OVER(PARTITION BY o.customer_id ORDER BY CAST(o.order_date AS DATE)) rn
 FROM order_detail o
 LEFT JOIN customer_detail c
 ON o.customer_id = c.customer_id
-WHERE c.registration_date > '2024-01-01' AND c.registration_date < '2025-01-01'
-	AND is_nett =1
+WHERE is_valid = 1
+	AND c.registration_date >= '2024-01-01' 
+	AND c.registration_date < '2025-01-01'
 )
 , CTE_first_order AS (
 SELECT
@@ -132,9 +140,33 @@ WHERE rn =1
 )
 SELECT 
 	registration_channel,
-	DATETRUNC(month, date_order) AS month_date,
-	COUNT(DISTINCT customer_id) AS new_cus,
+	DATETRUNC(month, registration_date) AS month_date,
+	COUNT(customer_id) AS new_cus,
 	AVG(diff_day) AS AVG_diff_day
 FROM CTE_first_order
-GROUP BY registration_channel, DATETRUNC(month,date_order)
-ORDER BY registration_channel, month_date 
+GROUP BY registration_channel, DATETRUNC(month,registration_date)
+ORDER BY registration_channel, month_date;
+
+-- --------------------------------------Menggunakan subquery ---------------------
+SELECT
+	registration_channel,
+	DATETRUNC(month,registration_date) month,
+	COUNT(DISTINCT customer_id) total_cus,
+	AVG(DATEDIFF(day, registration_date,order_date)) avg_day 
+FROM (
+		SELECT
+			c.customer_id,
+			c.registration_channel,
+			c.registration_date,
+			CAST(o.order_date AS DATE) AS order_date,
+			ROW_NUMBER() OVER (PARTITION BY c.customer_id ORDER BY CAST(o.order_date AS DATE)) AS rn
+		FROM order_detail o
+		LEFT JOIN customer_detail c
+		ON o.customer_id = c.customer_id
+		WHERE is_valid = 1
+			AND registration_date >= '2024-01-01'
+			AND registration_date < '2025-01-01'
+)t
+WHERE rn =1
+GROUP BY registration_channel,DATETRUNC(month,registration_date)
+ORDER BY registration_channel,DATETRUNC(month,registration_date)
