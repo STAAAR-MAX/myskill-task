@@ -1,0 +1,68 @@
+// ===============================================
+// 1. Total Product Sold
+// Menghitung total quantity yang terjual (nett)
+// ===============================================
+Total Product Sold :=
+CALCULATE(
+    SUM(order_detail[quantity]),
+    order_detail[is_nett] = 1
+)
+
+
+// ===============================================
+// 2. Previous Year Product Sold
+// Mengambil nilai Product Sold dari tahun sebelumnya
+// ===============================================
+PY Prod Sold :=
+CALCULATE(
+    [Total Product Sold],
+    SAMEPERIODLASTYEAR('date'[Date])
+)
+
+
+// ===============================================
+// 3. Growth YoY Product Sold
+// Rumus: (CY - PY) / PY
+// ===============================================
+Growth Prod Sold :=
+DIVIDE(
+    [Total Product Sold] - [PY Prod Sold],
+    [PY Prod Sold],
+    0
+)
+
+
+// ===============================================
+// 4. Arrow Indicator Product Sold
+// Menampilkan:
+//   +x.xx% ↑
+//   -x.xx% ↓
+//    0.00% →
+// ===============================================
+Arrow Prod Sold :=
+VAR _Diff =
+    [Total Product Sold] - [PY Prod Sold]
+
+VAR _Formatted =
+    FORMAT([Growth Prod Sold], "+0.00%;-0.00%;0.00%")
+
+RETURN
+SWITCH(
+    TRUE(),
+    ISBLANK([Total Product Sold]), BLANK(),
+    _Diff > 0, _Formatted & " ↑",
+    _Diff < 0, _Formatted & " ↓",
+    _Formatted & " →"
+)
+
+
+// ===============================================
+// 5. Color Coding Product Sold
+// Output: "Green" jika naik, "Red" jika turun
+// ===============================================
+Color Prod Sold :=
+IF(
+    [Total Product Sold] - [PY Prod Sold] > 0,
+    "Green",
+    "Red"
+)
