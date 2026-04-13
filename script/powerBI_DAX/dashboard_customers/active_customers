@@ -1,0 +1,69 @@
+// ===============================================
+// 1. Active Customers
+// Customer yang valid dan nett (is_valid = 1 & is_nett = 1)
+// ===============================================
+Active Customers :=
+CALCULATE(
+    [Total Customers],
+    order_detail[is_valid] = 1,
+    order_detail[is_nett] = 1
+)
+
+
+// ===============================================
+// 2. Previous Year Active Customers
+// Nilai Active Customers pada tahun sebelumnya
+// ===============================================
+PY Active Cus :=
+CALCULATE(
+    [Active Customers],
+    SAMEPERIODLASTYEAR('date'[Date])
+)
+
+
+// ===============================================
+// 3. Growth YoY Active Customers
+// Rumus: (CY - PY) / PY
+// ===============================================
+Growth Act :=
+DIVIDE(
+    [Active Customers] - [PY Active Cus],
+    [PY Active Cus],
+    0
+)
+
+
+// ===============================================
+// 4. Arrow Indicator Active Customers
+// Output:
+//   +x.xx% ↑
+//   -x.xx% ↓
+//    0.00% →
+// ===============================================
+Arrow Act :=
+VAR _Diff =
+    [Active Customers] - [PY Active Cus]
+
+VAR _Formatted =
+    FORMAT([Growth Act], "+0.00%;-0.00%;0.00%")
+
+RETURN
+SWITCH(
+    TRUE(),
+    ISBLANK([Active Customers]), BLANK(),
+    _Diff > 0, _Formatted & " ↑",
+    _Diff < 0, _Formatted & " ↓",
+    _Formatted & " →"
+)
+
+
+// ===============================================
+// 5. Color Coding Active Customers
+// Output: "Green" jika naik, "Red" jika turun
+// ===============================================
+Color Act :=
+IF(
+    [Active Customers] - [PY Active Cus] > 0,
+    "Green",
+    "Red"
+)
