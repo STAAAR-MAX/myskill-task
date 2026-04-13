@@ -1,0 +1,69 @@
+// ===============================================
+// 1. AOV (Average Order Value)
+// Rumus: Total Revenue / Total Orders
+// ===============================================
+AOV :=
+DIVIDE(
+    [Total Revenue],
+    [Total Orders],
+    0
+)
+
+
+// ===============================================
+// 2. Previous Year AOV
+// Nilai AOV pada periode tahun sebelumnya
+// ===============================================
+PY AOV :=
+CALCULATE(
+    [AOV],
+    SAMEPERIODLASTYEAR('date'[Date])
+)
+
+
+// ===============================================
+// 3. Growth YoY AOV
+// Rumus: (CY - PY) / PY
+// ===============================================
+Growth AOV :=
+DIVIDE(
+    [AOV] - [PY AOV],
+    [PY AOV],
+    0
+)
+
+
+// ===============================================
+// 4. Arrow Indicator AOV
+// Output:
+//   +x.xx% ↑
+//   -x.xx% ↓
+//    0.00% →
+// ===============================================
+Arrow AOV :=
+VAR _Diff =
+    [AOV] - [PY AOV]
+
+VAR _Formatted =
+    FORMAT([Growth AOV], "+0.00%;-0.00%;0.00%")
+
+RETURN
+SWITCH(
+    TRUE(),
+    ISBLANK([AOV]), BLANK(),
+    _Diff > 0, _Formatted & " ↑",
+    _Diff < 0, _Formatted & " ↓",
+    _Formatted & " →"
+)
+
+
+// ===============================================
+// 5. Color Coding AOV
+// Output: "Green" jika naik, "Red" jika turun
+// ===============================================
+Color AOV :=
+IF(
+    [AOV] - [PY AOV] > 0,
+    "Green",
+    "Red"
+)
