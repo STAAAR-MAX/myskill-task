@@ -1,0 +1,12 @@
+Profit = 
+VAR _cost = CALCULATE(
+    SUMX(order_detail,
+    order_detail[quantity] * 
+    RELATED(product_detail[cogs])
+    ),
+    order_detail[is_nett] =1
+)
+
+RETURN
+
+[Total Revenue] - _cost
