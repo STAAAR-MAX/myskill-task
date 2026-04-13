@@ -1,0 +1,80 @@
+// ===============================================
+// 1. Repeat Rate
+// Menghitung persentase Active Customers
+// yang melakukan lebih dari 1 transaksi nett & valid
+// ===============================================
+Repeat Rate :=
+VAR _RepeatCustomers =
+    COUNTROWS(
+        FILTER(
+            VALUES(order_detail[customer_id]),
+            CALCULATE(
+                COUNT(order_detail[order_id]),
+                order_detail[is_valid] = 1,
+                order_detail[is_nett] = 1
+            ) > 1
+        )
+    )
+RETURN
+DIVIDE(
+    _RepeatCustomers,
+    [Active Customers],
+    0
+)
+
+
+// ===============================================
+// 2. Previous Year Repeat Rate
+// ===============================================
+PY Rep Ord :=
+CALCULATE(
+    [Repeat Rate],
+    SAMEPERIODLASTYEAR('date'[Date])
+)
+
+
+// ===============================================
+// 3. Growth YoY Repeat Rate
+// Rumus: (CY - PY) / PY
+// ===============================================
+Growth Rep Ord :=
+DIVIDE(
+    [Repeat Rate] - [PY Rep Ord],
+    [PY Rep Ord],
+    0
+)
+
+
+// ===============================================
+// 4. Arrow Indicator Repeat Rate
+// Output:
+//   +x.xx% ↑
+//   -x.xx% ↓
+//    0.00% →
+// ===============================================
+Arrow Rep Ord :=
+VAR _Diff =
+    [Repeat Rate] - [PY Rep Ord]
+
+VAR _Formatted =
+    FORMAT([Growth Rep Ord], "+0.00%;-0.00%;0.00%")
+
+RETURN
+SWITCH(
+    TRUE(),
+    _Diff > 0, _Formatted & " ↑",
+    _Diff < 0, _Formatted & " ↓",
+    _Formatted & " →"
+)
+
+
+// ===============================================
+// 5. Color Coding Repeat Rate
+// Output: "Green" jika naik, "Red" jika turun
+// ===============================================
+Color Rep Ord :=
+IF(
+    [Repeat Rate] - [PY Rep Ord] > 0,
+    "Green",
+    "Red"
+)
