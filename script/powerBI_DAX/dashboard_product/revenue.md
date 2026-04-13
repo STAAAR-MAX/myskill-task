@@ -1,4 +1,4 @@
-``sql
+
 // ===============================================
 // 1. Total Revenue
 // Menghitung total revenue setelah diskon,
@@ -69,4 +69,4 @@ IF(
     "Green",
     "Red"
 )
-```
+
