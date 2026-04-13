@@ -1,0 +1,89 @@
+// ===============================================
+// 1. Purchase Users
+// Jumlah user yang melakukan Purchase
+// ===============================================
+Purchase Users :=
+CALCULATE(
+    COUNTROWS(funnel_detail),
+    funnel_detail[status] = "Purchase"
+)
+
+
+// ===============================================
+// 2. Cart Users
+// Jumlah user yang melakukan Add to Cart
+// ===============================================
+Cart Users :=
+CALCULATE(
+    COUNTROWS(funnel_detail),
+    funnel_detail[status] = "Add to Cart"
+)
+
+
+// ===============================================
+// 3. Cart to Purchase Rate
+// Rumus: Purchase Users / Cart Users
+// ===============================================
+Cart to Purchase Rate :=
+DIVIDE(
+    [Purchase Users],
+    [Cart Users],
+    0
+)
+
+
+// ===============================================
+// 4. Previous Year Cart to Purchase Rate
+// ===============================================
+PY Cart to Purchase Rate :=
+CALCULATE(
+    [Cart to Purchase Rate],
+    SAMEPERIODLASTYEAR('date'[Date])
+)
+
+
+// ===============================================
+// 5. Growth YoY Cart to Purchase Rate
+// Rumus: (CY - PY) / PY
+// ===============================================
+Growth Cart to Purchase Rate :=
+DIVIDE(
+    [Cart to Purchase Rate] - [PY Cart to Purchase Rate],
+    [PY Cart to Purchase Rate],
+    0
+)
+
+
+// ===============================================
+// 6. Arrow Indicator
+// Output:
+//   +x.xx% ↑
+//   -x.xx% ↓
+//    0.00% →
+// ===============================================
+Arrow Cart to Purchase Rate :=
+VAR _Diff =
+    [Cart to Purchase Rate] - [PY Cart to Purchase Rate]
+
+VAR _Formatted =
+    FORMAT([Growth Cart to Purchase Rate], "+0.00%;-0.00%;0.00%")
+
+RETURN
+SWITCH(
+    TRUE(),
+    _Diff > 0, _Formatted & " ↑",
+    _Diff < 0, _Formatted & " ↓",
+    _Formatted & " →"
+)
+
+
+// ===============================================
+// 7. Color Coding
+// Output: "Green" jika naik, "Red" jika turun
+// ===============================================
+Color Cart to Purchase Rate :=
+IF(
+    [Cart to Purchase Rate] - [PY Cart to Purchase Rate] > 0,
+    "Green",
+    "Red"
+)
