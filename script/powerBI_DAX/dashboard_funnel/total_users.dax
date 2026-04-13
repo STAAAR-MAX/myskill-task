@@ -1,0 +1,99 @@
+// ===============================================
+// 1. Total Customers
+// Customer unik pada funnel
+// ===============================================
+Total Customers :=
+COUNTROWS(
+    VALUES(funnel_detail[customer_id])
+)
+
+
+// ===============================================
+// 2. Click Users
+// Jumlah user yang melakukan Click
+// ===============================================
+Click :=
+CALCULATE(
+    COUNTROWS(funnel_detail),
+    funnel_detail[status] = "Click"
+)
+
+
+// ===============================================
+// 3. View Users
+// Jumlah user yang melakukan View
+// ===============================================
+View Users :=
+CALCULATE(
+    COUNTROWS(funnel_detail),
+    funnel_detail[status] = "Viewed"
+)
+
+
+// ===============================================
+// 4. View → Cart Rate
+// Rumus: View Users / Click Users
+// ===============================================
+View to Cart Rate :=
+DIVIDE(
+    [View Users],
+    [Click],
+    0
+)
+
+
+// ===============================================
+// 5. Previous Year View → Cart Rate
+// ===============================================
+PY View to Cart Rate :=
+CALCULATE(
+    [View to Cart Rate],
+    SAMEPERIODLASTYEAR('date'[Date])
+)
+
+
+// ===============================================
+// 6. Growth YoY View → Cart Rate
+// Rumus: (CY - PY) / PY
+// ===============================================
+Growth View to Cart Rate :=
+DIVIDE(
+    [View to Cart Rate] - [PY View to Cart Rate],
+    [PY View to Cart Rate],
+    0
+)
+
+
+// ===============================================
+// 7. Arrow Indicator
+// Output:
+//   +x.xx% ↑
+//   -x.xx% ↓
+//    0.00% →
+// ===============================================
+Arrow View to Cart Rate :=
+VAR _Diff =
+    [View to Cart Rate] - [PY View to Cart Rate]
+
+VAR _Formatted =
+    FORMAT([Growth View to Cart Rate], "+0.00%;-0.00%;0.00%")
+
+RETURN
+SWITCH(
+    TRUE(),
+    _Diff > 0, _Formatted & " ↑",
+    _Diff < 0, _Formatted & " ↓",
+    _Formatted & " →"
+)
+
+
+// ===============================================
+// 8. Color Coding
+// Output: Green jika naik, Red jika turun
+// ===============================================
+Color View to Cart Rate :=
+IF(
+    [View to Cart Rate] - [PY View to Cart Rate] > 0,
+    "Green",
+    "Red"
+)
