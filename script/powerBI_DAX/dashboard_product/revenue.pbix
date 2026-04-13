@@ -1,0 +1,70 @@
+// ===============================================
+// 1. Total Revenue
+// Menghitung total revenue setelah diskon,
+// hanya untuk transaksi dengan is_nett = 1
+// ===============================================
+Total Revenue :=
+CALCULATE(
+    SUM(order_detail[after_discount]),
+    order_detail[is_nett] = 1
+)
+
+
+// ===============================================
+// 2. Previous Year Total Revenue
+// Mengambil nilai Total Revenue dari tahun sebelumnya
+// ===============================================
+PY Rev :=
+CALCULATE(
+    [Total Revenue],
+    SAMEPERIODLASTYEAR('date'[Date])
+)
+
+
+// ===============================================
+// 3. Growth YoY Total Revenue
+// Rumus: (CY - PY) / PY
+// Dibulatkan ke 2 desimal
+// ===============================================
+Growth Rev :=
+ROUND(
+    DIVIDE(
+        [Total Revenue] - [PY Rev],
+        [PY Rev],
+        0
+    ),
+    2
+)
+
+
+// ===============================================
+// 4. Arrow Indicator Total Revenue
+// Menampilkan:
+//   +x.xx% ↑  (Growth positif)
+//   -x.xx% ↓  (Growth negatif)
+//    0.00% →  (Growth nol)
+// ===============================================
+Arrow Rev :=
+VAR Diff = [Total Revenue] - [PY Rev]
+VAR GrowthFormatted =
+    FORMAT([Growth Rev], "+0.00%;-0.00%;0.00%")
+RETURN
+SWITCH(
+    TRUE(),
+    ISBLANK([Total Revenue]), BLANK(),
+    Diff > 0, GrowthFormatted & " ↑",
+    Diff < 0, GrowthFormatted & " ↓",
+    GrowthFormatted & " →"
+)
+
+
+// ===============================================
+// 5. Color Coding Total Revenue
+// Output: "Green" jika naik, "Red" jika turun
+// ===============================================
+Color Rev :=
+IF(
+    [Total Revenue] - [PY Rev] > 0,
+    "Green",
+    "Red"
+)
