@@ -1,0 +1,73 @@
+// ===============================================
+// 1. Total Orders
+// Menghitung jumlah order unik (nett)
+// ===============================================
+Total Orders :=
+CALCULATE(
+    COUNTROWS(
+        VALUES(order_detail[order_id])
+    ),
+    order_detail[is_nett] = 1
+)
+
+
+// ===============================================
+// 2. Previous Year Total Orders
+// Nilai Total Orders untuk periode tahun sebelumnya
+// ===============================================
+PY Ord :=
+CALCULATE(
+    [Total Orders],
+    SAMEPERIODLASTYEAR('date'[Date])
+)
+
+
+// ===============================================
+// 3. Growth YoY Total Orders
+// Rumus: (CY - PY) / PY
+// ===============================================
+Growth Ord :=
+ROUND(
+    DIVIDE(
+        [Total Orders] - [PY Ord],
+        [PY Ord],
+        0
+    ),
+    2
+)
+
+
+// ===============================================
+// 4. Arrow Indicator Total Orders
+// Output:
+//   +x.xx% ↑
+//   -x.xx% ↓
+//    0.00% →
+// ===============================================
+Arrow Ord :=
+VAR _Diff =
+    [Total Orders] - [PY Ord]
+
+VAR _Formatted =
+    FORMAT([Growth Ord], "+0.00%;-0.00%;0.00%")
+
+RETURN
+SWITCH(
+    TRUE(),
+    ISBLANK([Total Orders]), BLANK(),
+    _Diff > 0, _Formatted & " ↑",
+    _Diff < 0, _Formatted & " ↓",
+    _Formatted & " →"
+)
+
+
+// ===============================================
+// 5. Color Coding Total Orders
+// Output "Green" jika naik, "Red" jika turun
+// ===============================================
+Color Ord :=
+IF(
+    [Total Orders] - [PY Ord] > 0,
+    "Green",
+    "Red"
+)
