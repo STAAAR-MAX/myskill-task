@@ -1,0 +1,67 @@
+// ===============================================
+// 1. Full Conversion Rate (FCR)
+// Rumus: Purchase Users / Click Users
+// ===============================================
+Full Conversion Rate :=
+DIVIDE(
+    [Purchase Users],
+    [Click],
+    0
+)
+
+
+// ===============================================
+// 2. Previous Year FCR
+// ===============================================
+PY FCR :=
+CALCULATE(
+    [Full Conversion Rate],
+    SAMEPERIODLASTYEAR('date'[Date])
+)
+
+
+// ===============================================
+// 3. Growth YoY FCR
+// Rumus: (CY - PY) / PY
+// ===============================================
+Growth FCR :=
+DIVIDE(
+    [Full Conversion Rate] - [PY FCR],
+    [PY FCR],
+    0
+)
+
+
+// ===============================================
+// 4. Arrow Indicator FCR
+// Output:
+//   +x.xx% ↑
+//   -x.xx% ↓
+//    0.00% →
+// ===============================================
+Arrow FCR :=
+VAR _Diff =
+    [Full Conversion Rate] - [PY FCR]
+
+VAR _Formatted =
+    FORMAT([Growth FCR], "+0.00%;-0.00%;0.00%")
+
+RETURN
+SWITCH(
+    TRUE(),
+    _Diff > 0, _Formatted & " ↑",
+    _Diff < 0, _Formatted & " ↓",
+    _Formatted & " →"
+)
+
+
+// ===============================================
+// 5. Color Coding FCR
+// Output: "Green" jika naik, "Red" jika turun
+// ===============================================
+Color FCR :=
+IF(
+    [Full Conversion Rate] - [PY FCR] > 0,
+    "Green",
+    "Red"
+)
