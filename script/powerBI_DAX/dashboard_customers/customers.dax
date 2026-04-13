@@ -1,0 +1,67 @@
+// ===============================================
+// 1. Total Customers
+// Menghitung jumlah customer unik
+// ===============================================
+Total Customers :=
+COUNTROWS(
+    VALUES(order_detail[customer_id])
+)
+
+
+// ===============================================
+// 2. Previous Year Total Customers
+// Mengambil nilai Total Customers tahun sebelumnya
+// ===============================================
+PY Cus :=
+CALCULATE(
+    [Total Customers],
+    SAMEPERIODLASTYEAR('date'[Date])
+)
+
+
+// ===============================================
+// 3. Growth YoY Total Customers
+// Rumus: (CY - PY) / PY
+// ===============================================
+Growth Cus :=
+DIVIDE(
+    [Total Customers] - [PY Cus],
+    [PY Cus],
+    0
+)
+
+
+// ===============================================
+// 4. Arrow Indicator Total Customers
+// Output format:
+//   +x.xx% ↑
+//   -x.xx% ↓
+//    0.00% →
+// ===============================================
+Arrow Cus :=
+VAR _Diff =
+    [Total Customers] - [PY Cus]
+
+VAR _Formatted =
+    FORMAT([Growth Cus], "+0.00%;-0.00%;0.00%")
+
+RETURN
+SWITCH(
+    TRUE(),
+    ISBLANK([Total Customers]), BLANK(),
+    _Diff > 0, _Formatted & " ↑",
+    _Diff < 0, _Formatted & " ↓",
+    _Formatted & " →"
+)
+
+
+// ===============================================
+// 5. Color Coding Total Customers
+// Output: "Green" jika naik, "Red" jika turun
+// ===============================================
+Color Cus :=
+IF(
+    [Total Customers] - [PY Cus] > 0,
+    "Green",
+    "Red"
+)
