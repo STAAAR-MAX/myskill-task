@@ -1,0 +1,116 @@
+Dynamic Top / Bottom Ranking dengan Bar Chart (Power BI)
+Tujuan
+Membuat visual yang bisa:
+- Menampilkan Top N atau Bottom N
+- Dinamis berdasarkan pilihan user
+- Memiliki filter jumlah (Top 3, Top 5, dst)
+- Dilengkapi conditional formatting
+
+Step 1 — Membuat Measure Rank
+Measure ini digunakan untuk menentukan peringkat berdasarkan Total Revenue.
+Revenue Rank =
+RANKX(
+    ALL(customer_detail[province]),
+    [Total Revenue],
+    ,
+    DESC,
+    DENSE
+)
+
+Step 2 — Membuat Disconnected Table (Selection)
+Digunakan untuk memilih Top atau Bottom.
+
+Cara:
+Klik Home > Enter Data
+Buat tabel:
+selection
+Top
+Bottom
+Nama tabel: selection
+
+Step 3 — Membuat Measure Selected Value
+Mengambil nilai dari slicer (Top / Bottom).
+SelectedValue =
+SELECTEDVALUE(selection[selection])
+Penjelasan:
+Menghubungkan pilihan user dengan logic DAX
+Jika user pilih "Top", maka measure akan membaca "Top"
+
+Step 4 — Dynamic Ranking (Top / Bottom)
+Gabungkan logic Top & Bottom dalam satu measure.
+
+Revenue Rank =
+IF(
+    [SelectedValue] = "Top",
+    RANKX(
+        ALL(customer_detail[province]),
+        [Total Revenue],
+        ,
+        DESC,
+        DENSE
+    ),
+    RANKX(
+        ALL(customer_detail[province]),
+        [Total Revenue],
+        ,
+        ASC,
+        DENSE
+    )
+)
+
+Step 5 — Membuat Parameter (Top N)
+Digunakan untuk menentukan jumlah data yang ditampilkan.
+Cara:
+Masuk ke Modeling > New Parameter > Numeric Range
+Set:
+Minimum: 1
+Maximum: 20 (atau sesuai kebutuhan)
+Power BI akan otomatis membuat:
+Tabel parameter
+Slicer
+
+Step 6 — Measure untuk Filter Visual (Data Labels)
+Menyembunyikan data di luar Top N / Bottom N.
+Data Labels =
+VAR SelectedValue =
+    SELECTEDVALUE('Numeric range'[Numeric range])
+RETURN
+IF(
+    [Revenue Rank] <= SelectedValue,
+    [Total Revenue],
+    BLANK()
+)
+
+Penjelasan:
+Jika ranking > N → tidak ditampilkan (BLANK)
+Ini membuat visual hanya menampilkan Top N / Bottom N
+
+Step 7 — Terapkan ke Visual
+Gunakan Bar Chart
+Axis → province
+Values → ganti dengan Data Labels
+Tambahkan slicer:
+selection
+
+Step 8 — Conditional Formatting (Warna Dinamis)
+Bar Format =
+VAR Selected =
+    SELECTEDVALUE('Numeric range'[Numeric range])
+VAR Type =
+    SELECTEDVALUE(selection[selection])
+RETURN
+IF(
+    [Revenue Rank] <= Selected && Type = "Top", "Green",
+    IF(
+        [Revenue Rank] <= Selected && Type = "Bottom", "Red",
+        "Gray"
+    )
+)
+Cara Apply:
+Klik chart
+Masuk ke Format (ikon kuas)
+Pilih Columns > Colors
+Klik fx
+Setting:
+Format style → Field Value
+Based on field → Bar Format
