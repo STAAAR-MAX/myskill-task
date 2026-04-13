@@ -1,0 +1,67 @@
+// ===============================================
+// 1. ARPU (Average Revenue Per User)
+// Rumus: Total Revenue / Active Customers
+// ===============================================
+ARPU :=
+DIVIDE(
+    [Total Revenue],
+    [Active Customers],
+    0
+)
+
+
+// ===============================================
+// 2. Previous Year ARPU
+// Nilai ARPU pada periode tahun sebelumnya
+// ===============================================
+PY ARPU :=
+CALCULATE(
+    [ARPU],
+    SAMEPERIODLASTYEAR('date'[Date])
+)
+
+
+// ===============================================
+// 3. Growth YoY ARPU
+// Rumus: (CY - PY) / PY
+// ===============================================
+Growth ARPU :=
+DIVIDE(
+    [ARPU] - [PY ARPU],
+    [PY ARPU],
+    0
+)
+
+
+// ===============================================
+// 4. Arrow Indicator ARPU
+// Output:
+//   +x.xx% ↑
+//   -x.xx% ↓
+//    0.00% →
+// ===============================================
+Arrow ARPU :=
+VAR _Diff =
+    [ARPU] - [PY ARPU]
+
+VAR _Formatted =
+    FORMAT([Growth ARPU], "+0.00%;-0.00%;0.00%")
+RETURN
+SWITCH(
+    TRUE(),
+    _Diff > 0, _Formatted & " ↑",
+    _Diff < 0, _Formatted & " ↓",
+    _Formatted & " →"
+)
+
+
+// ===============================================
+// 5. Color Coding ARPU
+// Output: "Green" jika naik, "Red" jika turun
+// ===============================================
+Color ARPU :=
+IF(
+    [ARPU] - [PY ARPU] > 0,
+    "Green",
+    "Red"
+)
