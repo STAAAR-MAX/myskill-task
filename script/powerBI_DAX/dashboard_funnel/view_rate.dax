@@ -1,15 +1,6 @@
-// ===============================================
-// 1. Total Customers
-// Customer unik pada funnel
-// ===============================================
-Total Customers :=
-COUNTROWS(
-    VALUES(funnel_detail[customer_id])
-)
-
 
 // ===============================================
-// 2. Click Users
+// 1. Click Users
 // Jumlah user yang melakukan Click
 // ===============================================
 Click :=
@@ -20,7 +11,7 @@ CALCULATE(
 
 
 // ===============================================
-// 3. View Users
+// 2. View Users
 // Jumlah user yang melakukan View
 // ===============================================
 View Users :=
@@ -31,7 +22,7 @@ CALCULATE(
 
 
 // ===============================================
-// 4. View → Cart Rate
+// 3. View → Cart Rate
 // Rumus: View Users / Click Users
 // ===============================================
 View to Cart Rate :=
@@ -43,7 +34,7 @@ DIVIDE(
 
 
 // ===============================================
-// 5. Previous Year View → Cart Rate
+// 4. Previous Year View → Cart Rate
 // ===============================================
 PY View to Cart Rate :=
 CALCULATE(
@@ -53,7 +44,7 @@ CALCULATE(
 
 
 // ===============================================
-// 6. Growth YoY View → Cart Rate
+// 5. Growth YoY View → Cart Rate
 // Rumus: (CY - PY) / PY
 // ===============================================
 Growth View to Cart Rate :=
@@ -65,7 +56,7 @@ DIVIDE(
 
 
 // ===============================================
-// 7. Arrow Indicator
+// 6. Arrow Indicator
 // Output:
 //   +x.xx% ↑
 //   -x.xx% ↓
@@ -88,7 +79,7 @@ SWITCH(
 
 
 // ===============================================
-// 8. Color Coding
+// 7. Color Coding
 // Output: Green jika naik, Red jika turun
 // ===============================================
 Color View to Cart Rate :=
