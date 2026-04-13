@@ -1,0 +1,50 @@
+
+// Berisi DAX untuk menghitung total revenue 
+// 1. Total Reveneu
+Total Revenue = CALCULATE(
+    SUM(
+        order_detail[after_discount]),
+        order_detail[is_nett] =1
+)
+
+// 2. Prevous Year Total Revenue
+PY Rev = CALCULATE(
+    [Total Revenue],
+    SAMEPERIODLASTYEAR(
+        'date'[Date]
+    )
+)
+
+// 3. Prevous Growth Total Revenue
+Growth Rev = ROUND(
+    DIVIDE(
+    [Total Revenue] - [PY Rev],
+    [PY Rev],
+    0
+    ),
+    2
+)
+
+// 4. Arrow Total Revenue
+Arrow Rev = 
+VAR Diff = [Total Revenue] - [PY Rev]
+VAR GrowthFormatted = FORMAT([Growth Rev], "+0.00%;-0.00%;0.00%")
+
+RETURN
+SWITCH(
+    TRUE(),
+    ISBLANK([Total Revenue]), BLANK(),
+    Diff > 0, GrowthFormatted & " ↑",
+    Diff < 0, GrowthFormatted & " ↓",
+    GrowthFormatted & " →"
+)
+
+// 5. Color Total Revenue
+Color Rev = IF(
+    [Total Revenue]-[PY Rev]>0,
+    "Green",
+    "Red"
+)
+
+
+  
